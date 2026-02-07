@@ -1,18 +1,12 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-
-# ==================================================
 # Page Config
-# ==================================================
 st.set_page_config(
     page_title="Reddit Narrative Spread Analysis",
     layout="centered"
 )
-
-# ==================================================
-# Title & Context
-# ==================================================
+# Title
 st.title("How Narratives Spread Across Reddit")
 
 st.write("""
@@ -23,10 +17,7 @@ A narrative represents a broader topic (e.g. technology, politics, conflict),
 identified using transparent keyword-based rules.  
 Each post is treated as an **act of amplification**.
 """)
-
-# ==================================================
-# Load Data
-# ==================================================
+#Dataload
 @st.cache_data
 def load_data():
     df = pd.read_json("data.jsonl", lines=True)
@@ -38,9 +29,7 @@ clean_df = data_df[
     ["subreddit", "author", "created_utc", "title", "selftext"]
 ].copy()
 
-# ==================================================
-# Narrative Definitions (Explainable NLP)
-# ==================================================
+# Narrative Definitions
 NARRATIVES = {
     "Technology / Big Tech": [
         "technology", "tech", "ai", "artificial intelligence",
@@ -60,9 +49,8 @@ NARRATIVES = {
     ],
 }
 
-# ==================================================
 # Text Preparation & Narrative Detection
-# ==================================================
+
 clean_df["text"] = (
     clean_df["title"].fillna("") + " " +
     clean_df["selftext"].fillna("")
@@ -82,9 +70,9 @@ clean_df["narratives"] = clean_df["text"].apply(detect_narratives)
 narrative_df = clean_df.explode("narratives")
 narrative_df = narrative_df.dropna(subset=["narratives"])
 
-# ==================================================
+
 # Time Processing
-# ==================================================
+
 narrative_df["created_time"] = pd.to_datetime(
     narrative_df["created_utc"], unit="s"
 )
@@ -103,9 +91,9 @@ narrative_df["days_since_start"] = (
     narrative_df["created_time"] - narrative_df["first_seen"]
 ).dt.days
 
-# ==================================================
-# GLOBAL TIME WINDOW (Power BI–style slicer)
-# ==================================================
+
+# GLOBAL TIME WINDOW Slicer
+
 st.subheader("Global Time Window")
 
 min_day = int(narrative_df["days_since_start"].min())
@@ -121,9 +109,9 @@ window_df = narrative_df[
     (narrative_df["days_since_start"] <= day_range[1])
 ]
 
-# ==================================================
-# GLOBAL KPIs (Time-window aware)
-# ==================================================
+
+# KPIs
+
 st.subheader("Dataset Activity (Selected Window)")
 
 c1, c2, c3 = st.columns(3)
@@ -137,9 +125,8 @@ with c2:
 with c3:
     st.metric("Narratives Active", window_df["narratives"].nunique())
 
-# ==================================================
+
 # Narrative Distribution (Selected Window)
-# ==================================================
 st.subheader("Narrative Distribution in Selected Window")
 
 narrative_counts = (
@@ -152,9 +139,9 @@ narrative_counts.columns = ["Narrative", "Post Count"]
 
 st.dataframe(narrative_counts, use_container_width=True)
 
-# ==================================================
+
 # Narrative Growth Over Time
-# ==================================================
+
 st.subheader("Narrative Growth Dynamics")
 
 narrative_time_df = (
@@ -169,9 +156,9 @@ selected_narrative = st.selectbox(
     sorted(narrative_time_df["narratives"].unique())
 )
 
-# ==================================================
+
 # Narrative-Specific KPIs (Dynamic)
-# ==================================================
+
 selected_df = window_df[
     window_df["narratives"] == selected_narrative
 ]
@@ -195,9 +182,8 @@ with k2:
 with k3:
     st.metric("Days to Peak Activity", int(peak_row["days_since_start"]))
 
-# ==================================================
 # Timeline Plot (Days Since First Appearance)
-# ==================================================
+
 filtered = narrative_time_df[
     narrative_time_df["narratives"] == selected_narrative
 ]
@@ -209,9 +195,9 @@ ax.set_ylabel("Number of Posts")
 ax.set_title(f"Growth Pattern: {selected_narrative}")
 st.pyplot(fig)
 
-# ==================================================
+
 # Community Amplification
-# ==================================================
+
 st.subheader("Community Amplification (Selected Window)")
 
 community_counts = (
@@ -229,9 +215,9 @@ ax2.set_ylabel("Number of Posts")
 ax2.set_title("Top Communities Amplifying This Narrative")
 st.pyplot(fig2)
 
-# ==================================================
+
 # Key Observations & Conclusions
-# ==================================================
+
 st.subheader("Key Observations from the Analysis")
 
 if len(window_df) == 0:
